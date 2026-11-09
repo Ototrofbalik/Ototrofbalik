@@ -5,7 +5,6 @@ AI modülü (backend.agent.orchestrator) yoksa dürüstçe "henüz hazır değil
 from __future__ import annotations
 
 import importlib
-import inspect
 from typing import Any
 
 import streamlit as st
@@ -14,65 +13,55 @@ from backend import services
 from backend.config import get_settings
 from frontend import state
 
-_TEXT_PARAMS = ("text", "message", "user_text", "user_message", "prompt", "query")
-_METHODS = ("handle_message", "chat", "run_task", "ask", "run", "send_message")
-
 
 def load_orchestrator() -> Any | None:
-    """backend.agent.orchestrator modülünü yükler; yoksa None (ImportError dürüstçe ele alınır)."""
+    """backend.agent.orchestrator modülünü yükler; yoksa None."""
     try:
         return importlib.import_module("backend.agent.orchestrator")
     except ImportError:
         return None
 
 
-def _find_callable(mod: Any) -> Any | None:
-    for cls_name in ("Orchestrator", "AgentOrchestrator"):
-        cls = getattr(mod, cls_name, None)
-        if cls is not None:
-            inst = st.session_state.get("_orch_instance")
-            if inst is None:
-                inst = cls()
-                st.session_state["_orch_instance"] = inst
-            for m in _METHODS:
-                if callable(getattr(inst, m, None)):
-                    return getattr(inst, m)
-    for m in _METHODS:
-        if callable(getattr(mod, m, None)):
-            return getattr(mod, m)
-    return None
+def get_agent() -> Any | None:
+    """Oturum boyunca TEK FactoryFlowAgent (bekleyen onaylar executor'da bellekte tutulur)."""
+    mod = load_orchestrator()
+    if mod is None:
+        return None
+    agent = st.session_state.get("_agent")
+    if agent is None:
+        from backend.agent.gemini_client import GeminiClient
+
+        try:
+            client = GeminiClient()
+        except Exception:  # noqa: BLE001 - anahtar yok/SDK hatası: agent çevrimdışı modda çalışır
+            client = None
+        agent = mod.FactoryFlowAgent(client=client)
+        st.session_state["_agent"] = agent
+    return agent
 
 
 def ask_agent(text: str, project_id: str | None) -> tuple[Any | None, str | None]:
-    """(yanıt, hata). Yanıt AgentReply veya str olabilir; hata Türkçe mesajdır."""
-    mod = load_orchestrator()
-    if mod is None:
-        return None, "AI modülü henüz hazır değil (backend.agent.orchestrator bulunamadı)."
+    """(AgentReply, hata). Hata Türkçe mesajdır."""
+    agent = get_agent()
+    if agent is None:
+        return None, "AI modülü bulunamadı (backend.agent.orchestrator)."
     try:
-        fn = _find_callable(mod)
-        if fn is None:
-            return None, "AI modülü yüklendi ancak sohbet giriş noktası bulunamadı (arayüz uyumsuz)."
-        params = inspect.signature(fn).parameters
-        kwargs: dict[str, Any] = {}
-        text_name = next((p for p in _TEXT_PARAMS if p in params), None)
-        if text_name is None:
-            return None, "AI giriş noktasının metin parametresi tanınmadı (arayüz uyumsuz)."
-        kwargs[text_name] = text
-        if "project_id" in params:
-            kwargs["project_id"] = project_id
-        return fn(**kwargs), None
+        return agent.handle(text, project_id), None
     except Exception as exc:  # noqa: BLE001
         return None, f"AI isteği başarısız: {state.explain_error(exc)}"
 
 
 def gemini_status_text() -> tuple[str, str]:
     """(durum, açıklama) — .env ayarlarından; gerçek bağlantı doğrulaması yapılmadıysa söylenir."""
+    agent = st.session_state.get("_agent")
+    if agent is not None and agent.client is not None and agent.client.status.value != "Connected":
+        return agent.client.status.value, "Gemini kullanılamıyor; çevrimdışı analiz çalışır."
     s = get_settings()
     if not s.gemini_enabled:
         return "Disabled", "Gemini .env ile kapatılmış."
     if not s.gemini_configured:
         return "API Key Missing", "GEMINI_API_KEY tanımlı değil; mühendislik arayüzü ve çevrimdışı analiz çalışır."
-    return "Yapılandırıldı", "Anahtar tanımlı; bağlantı bu arayüzde doğrulanmadı."
+    return "Yapılandırıldı", "Anahtar tanımlı; ilk başarılı çağrıya kadar bağlantı doğrulanmış sayılmaz."
 
 
 def _render_reply(reply: Any) -> str:
@@ -134,9 +123,8 @@ def render_panel(ctx: state.Ctx) -> None:
             chat.append(("assistant", f"⚠ {err}"))
         else:
             chat.append(("assistant", _render_reply(reply)))
-            pend = getattr(reply, "pending_changes", None)
-            if pend:
-                st.session_state["pending_changes"] = list(pend)
+            if getattr(reply, "pending_changes", None):
+                st.session_state["pending_changes"] = True
         st.rerun()
 
     if pid and st.button("Tesisi analiz et (çevrimdışı)", key="ai_offline"):
@@ -163,14 +151,22 @@ def render_panel(ctx: state.Ctx) -> None:
             if not shown:
                 st.caption("Bekleyen öneri yok: simülasyon ve optimizasyon sonuçları mevcut.")
 
-    with st.expander("Bekleyen onaylar", expanded=False):
-        pend = st.session_state.get("pending_changes", [])
+    with st.expander("Bekleyen onaylar", expanded=bool(st.session_state.get("pending_changes"))):
+        agent = st.session_state.get("_agent")
+        pend = agent.executor.pending_changes() if agent is not None else []
         if not pend:
             st.caption("Onay bekleyen değişiklik yok.")
         for p in pend:
-            st.write(f"**{getattr(p, 'tool', '?')}** — {getattr(p, 'description', '')}")
-        if pend:
-            st.caption("Onay/ret, AI modülünün onay akışı üzerinden yapılır; bu arayüzde onay API'si bağlı değil.")
+            st.write(f"**{p.tool}** — {p.description}")
+            c1, c2 = st.columns(2)
+            if c1.button("Onayla", key=f"appr_{p.id}"):
+                r = agent.approve_change(p.id)
+                chat.append(("assistant", f"Onay sonucu: {r.status.value}" + (f" — {r.error}" if r.error else "")))
+                st.rerun()
+            if c2.button("Reddet", key=f"rej_{p.id}"):
+                r = agent.reject_change(p.id)
+                chat.append(("assistant", f"Değişiklik reddedildi: {r.status.value}"))
+                st.rerun()
 
     with st.expander("Araç çalıştırma geçmişi", expanded=False):
         if pid is None:
