@@ -1,0 +1,338 @@
+{
+  "id": "demo-project",
+  "name": "FactoryFlow Demo",
+  "description": "30x20 m örnek üretim hattı",
+  "is_demo": true,
+  "layout": {
+    "id": "demo-layout-v1",
+    "name": "Demo Layout (mevcut durum)",
+    "version": 1,
+    "parent_id": null,
+    "facility": {
+      "name": "Demo Fabrika",
+      "width": 30.0,
+      "height": 20.0,
+      "grid": 1.0,
+      "safety_gap_m": 0.5,
+      "min_corridor_width_m": 2.0,
+      "station_access_max_m": 6.0
+    },
+    "workstations": [
+      {
+        "id": "raw",
+        "name": "Raw Material",
+        "kind": "raw_material",
+        "x": 1.0,
+        "y": 2.0,
+        "width": 4.0,
+        "length": 3.0,
+        "rotation": "0",
+        "fixed": false,
+        "input_offset": {
+          "x": -1.0,
+          "y": 0.0
+        },
+        "output_offset": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "processing_time_s": 60.0,
+        "setup_time_s": 0.0,
+        "capacity": 1,
+        "queue_capacity": null,
+        "requires_operator": false
+      },
+      {
+        "id": "pack",
+        "name": "Packaging",
+        "kind": "packaging",
+        "x": 9.0,
+        "y": 2.0,
+        "width": 4.0,
+        "length": 3.0,
+        "rotation": "0",
+        "fixed": false,
+        "input_offset": {
+          "x": -1.0,
+          "y": 0.0
+        },
+        "output_offset": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "processing_time_s": 150.0,
+        "setup_time_s": 0.0,
+        "capacity": 1,
+        "queue_capacity": null,
+        "requires_operator": true
+      },
+      {
+        "id": "drill",
+        "name": "Drilling",
+        "kind": "machine",
+        "x": 17.0,
+        "y": 2.0,
+        "width": 4.0,
+        "length": 3.0,
+        "rotation": "0",
+        "fixed": false,
+        "input_offset": {
+          "x": -1.0,
+          "y": 0.0
+        },
+        "output_offset": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "processing_time_s": 300.0,
+        "setup_time_s": 20.0,
+        "capacity": 1,
+        "queue_capacity": null,
+        "requires_operator": false
+      },
+      {
+        "id": "ship",
+        "name": "Shipping",
+        "kind": "shipping",
+        "x": 25.0,
+        "y": 2.0,
+        "width": 4.0,
+        "length": 3.0,
+        "rotation": "0",
+        "fixed": false,
+        "input_offset": {
+          "x": -1.0,
+          "y": 0.0
+        },
+        "output_offset": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "processing_time_s": 60.0,
+        "setup_time_s": 0.0,
+        "capacity": 1,
+        "queue_capacity": null,
+        "requires_operator": false
+      },
+      {
+        "id": "asm",
+        "name": "Assembly",
+        "kind": "assembly",
+        "x": 3.0,
+        "y": 14.0,
+        "width": 4.0,
+        "length": 3.0,
+        "rotation": "0",
+        "fixed": false,
+        "input_offset": {
+          "x": -1.0,
+          "y": 0.0
+        },
+        "output_offset": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "processing_time_s": 420.0,
+        "setup_time_s": 0.0,
+        "capacity": 2,
+        "queue_capacity": null,
+        "requires_operator": true
+      },
+      {
+        "id": "qc",
+        "name": "Quality Control",
+        "kind": "quality",
+        "x": 12.0,
+        "y": 14.0,
+        "width": 4.0,
+        "length": 3.0,
+        "rotation": "0",
+        "fixed": false,
+        "input_offset": {
+          "x": -1.0,
+          "y": 0.0
+        },
+        "output_offset": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "processing_time_s": 180.0,
+        "setup_time_s": 0.0,
+        "capacity": 1,
+        "queue_capacity": null,
+        "requires_operator": true
+      },
+      {
+        "id": "cut",
+        "name": "Cutting",
+        "kind": "machine",
+        "x": 22.0,
+        "y": 14.0,
+        "width": 4.0,
+        "length": 3.0,
+        "rotation": "0",
+        "fixed": false,
+        "input_offset": {
+          "x": -1.0,
+          "y": 0.0
+        },
+        "output_offset": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "processing_time_s": 240.0,
+        "setup_time_s": 15.0,
+        "capacity": 1,
+        "queue_capacity": null,
+        "requires_operator": false
+      }
+    ],
+    "corridors": [
+      {
+        "id": "main",
+        "points": [
+          {
+            "x": 1.0,
+            "y": 10.0
+          },
+          {
+            "x": 29.0,
+            "y": 10.0
+          }
+        ],
+        "width": 3.0,
+        "one_way": false,
+        "allowed_vehicles": [
+          "operator",
+          "forklift",
+          "agv"
+        ]
+      },
+      {
+        "id": "west",
+        "points": [
+          {
+            "x": 1.0,
+            "y": 6.0
+          },
+          {
+            "x": 1.0,
+            "y": 10.0
+          },
+          {
+            "x": 1.0,
+            "y": 13.0
+          }
+        ],
+        "width": 2.0,
+        "one_way": false,
+        "allowed_vehicles": [
+          "operator",
+          "forklift",
+          "agv"
+        ]
+      }
+    ],
+    "obstacles": [
+      {
+        "id": "col1",
+        "name": "Kolon",
+        "rect": {
+          "x": 6.5,
+          "y": 3.0,
+          "w": 1.0,
+          "h": 1.0
+        },
+        "kind": "column"
+      }
+    ]
+  },
+  "products": [
+    {
+      "id": "widget-a",
+      "name": "Widget-A (örnek)",
+      "route": [
+        {
+          "station_id": "raw",
+          "transport_in": "operator",
+          "processing_time_s": null,
+          "setup_time_s": null
+        },
+        {
+          "station_id": "cut",
+          "transport_in": "forklift",
+          "processing_time_s": null,
+          "setup_time_s": null
+        },
+        {
+          "station_id": "drill",
+          "transport_in": "forklift",
+          "processing_time_s": null,
+          "setup_time_s": null
+        },
+        {
+          "station_id": "asm",
+          "transport_in": "forklift",
+          "processing_time_s": null,
+          "setup_time_s": null
+        },
+        {
+          "station_id": "qc",
+          "transport_in": "operator",
+          "processing_time_s": null,
+          "setup_time_s": null
+        },
+        {
+          "station_id": "pack",
+          "transport_in": "operator",
+          "processing_time_s": null,
+          "setup_time_s": null
+        },
+        {
+          "station_id": "ship",
+          "transport_in": "forklift",
+          "processing_time_s": null,
+          "setup_time_s": null
+        }
+      ],
+      "arrival_rate_per_hour": 11.0,
+      "batch_size": 1,
+      "max_wip": null
+    }
+  ],
+  "flow_edges": [],
+  "sim_config": {
+    "duration_s": 28800.0,
+    "warmup_s": 0.0,
+    "seed": 42,
+    "replications": 1,
+    "resources": [
+      {
+        "vehicle": "operator",
+        "count": 2,
+        "speed_mps": 1.2,
+        "load_time_s": 5.0,
+        "unload_time_s": 5.0
+      },
+      {
+        "vehicle": "forklift",
+        "count": 1,
+        "speed_mps": 2.5,
+        "load_time_s": 15.0,
+        "unload_time_s": 15.0
+      }
+    ],
+    "arrival": "poisson",
+    "processing_variability": "deterministic"
+  },
+  "cost": {
+    "cost_per_meter": {
+      "operator": 0.05,
+      "forklift": 0.2
+    },
+    "labor_cost_per_hour": null,
+    "currency": "TRY",
+    "assumed": true
+  },
+  "data_label": "ÖRNEK / VARSAYIMSAL VERİ — gerçek bir tesisi temsil etmez"
+}
