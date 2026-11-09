@@ -31,7 +31,7 @@ GEMINI_ENABLED=true
 GEMINI_MAX_REQUESTS_PER_TASK=10
 GEMINI_DAILY_REQUEST_BUDGET=100
 ```
-Ücretsiz model/limitler değişebilir: güncel liste için Google AI Studio dokümantasyonuna bak; ücretsiz kota garanti edilmez. Uygulama ücretli modele **otomatik geçmez**. Kota aşılırsa AI kilitlenir, mühendislik uygulaması çalışmaya devam eder.
+Model adlarının ömrü kısadır: ör. `gemini-2.5-flash` yeni kullanıcılara kapatılmıştı (404); bu oturumda `gemini-3.5-flash` ve `gemini-3.1-flash-lite` çalıştı. Güncel listeyi Settings sayfasından veya `GeminiClient().list_available_models()` ile gör, 404 alırsan başka model seç. Ücretsiz model/limitler değişebilir: güncel liste için Google AI Studio dokümantasyonuna bak; ücretsiz kota garanti edilmez. Uygulama ücretli modele **otomatik geçmez**. Kota aşılırsa AI kilitlenir, mühendislik uygulaması çalışmaya devam eder.
 Tesis verisi Gemini'ye yalnız `.env` içinde `EXTERNAL_DATA_CONSENT=true` yaptığında gönderilir (Settings sayfası durumu gösterir, arayüzden değiştirilmez); varsayılan `false` olduğundan veri yerelde kalır ve çevrimdışı mod kullanılır.
 Gerçek bağlantıyı bir kez sınamak için: `RUN_GEMINI_LIVE=1 pytest tests/manual/test_gemini_live.py`
 
