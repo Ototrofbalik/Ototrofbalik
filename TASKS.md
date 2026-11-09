@@ -17,7 +17,7 @@ Durum: ☐ bekliyor · ◐ sürüyor · ☑ bitti. Kapı = pytest+ruff yeşil.
 
 Kapı G1: merge + pytest + ruff.
 
-## Dalga 2 — paralel (3 ajan) ☐  [G1'e bağlı]
+## Dalga 2 — paralel (3 ajan) ☑ (G2 geçti: 180 test, ruff temiz)  [G1'e bağlı]
 | ID | Ajan | İş | Bağımlılık |
 |---|---|---|---|
 | W2-OPT | optimization-engineer (**Opus**) | swap/local/SA + OR-Tools atama, kısıtlı uygulanabilirlik, ≥3 alternatif, CRN sim, hedef %X azaltma | W1-LR, W1-SIM |
