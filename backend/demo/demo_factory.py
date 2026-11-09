@@ -5,8 +5,21 @@ Yerleşim kasıtlı olarak zikzaklıdır (akış sırası ile fiziksel sıra uyu
 from __future__ import annotations
 
 from backend.schemas import (
-    CostConfig, Corridor, Facility, Layout, Obstacle, Point, Product, Project, Rect,
-    ResourceConfig, RouteStep, SimConfig, StationKind, VehicleType, Workstation,
+    Corridor,
+    CostConfig,
+    Facility,
+    Layout,
+    Obstacle,
+    Point,
+    Product,
+    Project,
+    Rect,
+    ResourceConfig,
+    RouteStep,
+    SimConfig,
+    StationKind,
+    VehicleType,
+    Workstation,
 )
 
 DEMO_LABEL = "ÖRNEK / VARSAYIMSAL VERİ — gerçek bir tesisi temsil etmez"
