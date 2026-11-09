@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ ctx.title }}</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; background: #f4f6f8; color: #1a202c; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  h2 { font-size: 1.15rem; border-bottom: 2px solid #2b6cb0; padding-bottom: 4px; margin-top: 0; }
+  section { background: #fff; border-radius: 8px; padding: 16px 20px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .label { background: #fffaf0; border: 1px solid #dd6b20; color: #7b341e; padding: 8px 12px; border-radius: 6px; font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: .85rem; margin: 8px 0 16px; display: block; overflow-x: auto; }
+  th, td { border: 1px solid #e2e8f0; padding: 4px 8px; text-align: left; white-space: nowrap; }
+  th { background: #edf2f7; }
+  caption { text-align: left; font-weight: 600; padding: 4px 0; caption-side: top; }
+  figure { margin: 12px 0; }
+  figure img { max-width: 100%; height: auto; border: 1px solid #e2e8f0; }
+  figcaption { font-size: .8rem; color: #4a5568; }
+  .meta { color: #4a5568; font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>{{ ctx.title }}</h1>
+  <p class="meta">Oluşturulma (UTC): {{ ctx.generated_at }} · Proje: {{ ctx.project_id }}</p>
+  {% if ctx.data_label %}<p class="label">{{ ctx.data_label }}</p>{% endif %}
+  {% for s in ctx.sections %}
+  <section id="{{ s.id }}">
+    <h2>{{ s.no }}. {{ s.title }}</h2>
+    {% for p in s.paragraphs %}<p>{{ p }}</p>{% endfor %}
+    {% if s.bullets %}<ul>{% for b in s.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
+    {% for t in s.tables %}
+    <table>
+      <caption>{{ t.caption }}</caption>
+      <thead><tr>{% for c in t.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for r in t.rows %}<tr>{% for v in r %}<td>{{ v|fmt }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+    {% endfor %}
+    {% for key in s.figures %}
+    <figure>
+      <img alt="{{ figs[key].caption }}" src="data:image/png;base64,{{ figs[key].b64 }}">
+      <figcaption>{{ figs[key].caption }}</figcaption>
+    </figure>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</main>
+</body>
+</html>
