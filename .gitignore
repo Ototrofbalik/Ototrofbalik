@@ -8,3 +8,4 @@ data/*.db
 data/generated_reports/*
 !data/generated_reports/.gitkeep
 .cache/
+.claude/worktrees/
