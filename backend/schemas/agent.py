@@ -1,7 +1,7 @@
 """Agent / tool yürütme sözleşmeleri."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -35,7 +35,7 @@ class PendingChange(Strict):
     description: str
     tool: str
     args: dict[str, Any]
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     approved: bool | None = None
 
 
@@ -48,7 +48,7 @@ class ToolCallRecord(Strict):
     duration_ms: float
     output_summary: str = ""
     error: str | None = None
-    ts: datetime = Field(default_factory=datetime.utcnow)
+    ts: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class GeminiStatus(StrEnum):

@@ -5,7 +5,7 @@ Yerleşim kasıtlı olarak zikzaklıdır (akış sırası ile fiziksel sıra uyu
 from __future__ import annotations
 
 from backend.schemas import (
-    CostConfig, Corridor, Facility, FlowEdge, Layout, Obstacle, Point, Product, Project, Rect,
+    CostConfig, Corridor, Facility, Layout, Obstacle, Point, Product, Project, Rect,
     ResourceConfig, RouteStep, SimConfig, StationKind, VehicleType, Workstation,
 )
 
