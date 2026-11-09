@@ -429,3 +429,8 @@ def export_excel(ctx: dict, out_dir: Path) -> Path:
 def export_png(ctx: dict, out_dir: Path) -> list[Path]:
     from backend.reporting.exporters import export_png as _f
     return _f(ctx, out_dir)
+
+
+def delta_figure(cmp: ScenarioComparison) -> go.Figure:
+    """KPI değişim (%) çubuk grafiği (UI ve rapor ortak kullanır)."""
+    return _fig_deltas(cmp)
