@@ -17,7 +17,6 @@ if str(_ROOT) not in sys.path:
 import streamlit as st  # noqa: E402
 
 from backend import services  # noqa: E402
-from backend.routing.engine import compute_flow_metrics, compute_routes, derive_flow_edges  # noqa: E402
 from backend.schemas import (  # noqa: E402
     FlowMetrics,
     Layout,
@@ -84,9 +83,7 @@ def flow_bundle(project: Project, layout: Layout | None = None) -> tuple[RouteSe
     key = f"flow:{project.id}:{lay.id}:{hash(lay.model_dump_json())}:{hash(str([e.model_dump() for e in project.flow_edges]))}"
     cache = st.session_state.setdefault("_flow_cache", {})
     if key not in cache:
-        edges = project.flow_edges or derive_flow_edges(project)
-        routes = compute_routes(lay, edges)
-        cache[key] = (routes, compute_flow_metrics(lay, edges, routes, project))
+        cache[key] = services.compute_flow(project, lay)
     return cache[key]
 
 

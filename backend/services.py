@@ -40,12 +40,14 @@ from backend.schemas import (
     EventRecord,
     Facility,
     FlowEdge,
+    FlowMetrics,
     Layout,
     Obstacle,
     OptimizationConfig,
     OptimizationResult,
     Product,
     Project,
+    RouteSet,
     RouteStep,
     SimConfig,
     SimResult,
@@ -740,3 +742,13 @@ def import_project_excel(data: bytes, *, new_id: str | None = None) -> Project:
         tables[ws.title] = [dict(zip(header, row, strict=False)) for row in it if any(c is not None for c in row)]
     return _save_imported(_tables_to_project(tables), new_id)
 
+
+
+def compute_flow(project: Project, layout: Layout | None = None) -> tuple[RouteSet, FlowMetrics]:
+    """Ağ rotaları + akış metrikleri (saf hesap, kayıt yazmaz). UI/Agent bunu kullanır."""
+    from backend.routing.engine import compute_flow_metrics, compute_routes, derive_flow_edges
+
+    lay = layout or project.layout
+    edges = project.flow_edges or derive_flow_edges(project)
+    routes = compute_routes(lay, edges)
+    return routes, compute_flow_metrics(lay, edges, routes, project)
