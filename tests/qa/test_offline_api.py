@@ -108,7 +108,6 @@ def test_bad_input_is_422(client):
     assert client.post("/projects/import/json", content="{bozuk").status_code == 422
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-03: domain hataları (SimulationError/KeyError/UnreachableFlowError) HTTP 500 dönüyor")
 def test_domain_errors_map_to_4xx_not_500(client):
     client.post("/projects/demo")
     lay = client.get("/projects/demo-project/layout").json()
@@ -119,14 +118,12 @@ def test_domain_errors_map_to_4xx_not_500(client):
     assert client.post("/projects/demo-project/optimizations").status_code < 500
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-03: kaynaksız (resources=[]) SimConfig -> SimulationError -> HTTP 500")
 def test_zero_resource_simulation_is_client_error(client):
     client.post("/projects/demo")
     r = client.post("/projects/demo-project/simulations", json={"resources": [], "seed": 1})
     assert 400 <= r.status_code < 500
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-03: erişilemeyen rota (çakışan layout kaydedildi) simülasyonda HTTP 500")
 def test_unreachable_layout_simulation_is_client_error(client):
     client.post("/projects/demo")
     lay = client.get("/projects/demo-project/layout").json()
@@ -136,7 +133,6 @@ def test_unreachable_layout_simulation_is_client_error(client):
     assert 400 <= client.post("/projects/demo-project/simulations").status_code < 500
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-04: proje id'si yol ayracı/'..' içerebiliyor (UI rapor klasörü REPORT_DIR/project_id)")
 def test_project_id_with_path_traversal_rejected(client):
     from backend.demo.demo_factory import build_demo_project
 

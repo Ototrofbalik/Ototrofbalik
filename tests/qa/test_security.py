@@ -317,7 +317,6 @@ def test_secret_never_leaks_to_logs_db_reports_or_replies(monkeypatch, caplog, d
         assert key.encode() not in raw_db, "ham DB dosyasında anahtar var"
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-02: ai_summary rapora maskelenmeden yazılıyor (sır içeren metin rapor dosyasına sızar)")
 def test_secret_in_ai_summary_is_masked_in_report_file(monkeypatch, db, tmp_path):
     monkeypatch.setenv("GEMINI_API_KEY", FAKE_PLAIN_KEY)
     reset_settings_cache()

@@ -26,7 +26,7 @@ Kapı G1: merge + pytest + ruff.
 
 Kapı G2: merge + pytest + ruff.
 
-## Dalga 3 — Entegrasyon & QA ☐
+## Dalga 3 — Entegrasyon & QA ☑ (QA bulguları F-01..F-07 düzeltildi; tam paket yeşil)
 - Master: `services.analyze_facility` uçtan uca bağlama, README, docs/, cilalama
 - W3-QA qa-engineer (Sonnet): bağımsız doğrulama; test_end_to_end; rapor↔hesap tutarlılık; offline mod; hata raporu `QA_REPORT.md`
 - Master: QA bulgularını ilgili ajanlara geri yönlendir, düzelt, kapat

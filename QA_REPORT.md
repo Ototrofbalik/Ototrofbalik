@@ -54,3 +54,11 @@ Yeniden üretim: `POST /projects/demo`; layout'tan `cut` silinip PUT; `POST /pro
 - Gerçek Gemini bağlantısı, kota/backoff davranışı gerçek API'de (anahtar/ağ yok).
 - Streamlit'in gerçek tarayıcıda görsel doğruluğu (yalnız AppTest ve sunucu sağlık ucu).
 - PNG/HTML grafiklerin görsel içeriği (yalnız geçerli PNG ve sayı/başlık metinleri).
+
+---
+## Master Architect düzeltme notu
+F-01…F-07 bulguları düzeltildi; `xfail(strict)` işaretleri kaldırılıp testler normal regresyon testine çevrildi (tam paket `pytest tests` → çıkış kodu 0).
+- F-06: senaryo seçici widget anahtarı aktif sürümü içeriyor (`frontend/streamlit_app.py`).
+- F-03: `ValueError`/`KeyError` → HTTP 422 (`backend/api/app.py`). F-04: `Project.id` deseni. F-05: `UNKNOWN_STATION` (`backend/pipeline.py`).
+- F-01: çevrimdışı analiz HTML+PDF rapor üretir, sim/optimizasyon/rapor kaydı DB'ye yazılır. F-02: AI metni maskelenir. F-07: `data/artifacts/` ignore.
+Hâlâ DOĞRULANAMADI: gerçek Gemini (kota/backoff), Streamlit görsel doğruluğu, PNG/grafik görsel içeriği.

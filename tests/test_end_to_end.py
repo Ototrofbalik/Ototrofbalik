@@ -32,12 +32,14 @@ def test_pipeline_all_steps_run_for_demo(analysis):
     """Kontrol 1a: analyze_facility(demo, optimize=True) — tüm adımlar ok, gerçek nesneler dolu."""
     names = [s.step for s in analysis.steps]
     assert names == ["validate_layout", "material_flow_routes", "spaghetti_chart", "simulation",
-                     "bottleneck_analysis", "optimization", "scenario_comparison"]
+                     "bottleneck_analysis", "optimization", "scenario_comparison", "engineering_report"]
     assert all(s.ok for s in analysis.steps)
     assert analysis.validation.valid
     assert analysis.flow is not None and analysis.baseline_sim is not None
     assert analysis.optimization is not None and analysis.comparison is not None
-    assert len(analysis.artifacts) == 1 and Path(analysis.artifacts[0]).stat().st_size > 10_000
+    suffixes = sorted(Path(a).suffix for a in analysis.artifacts)
+    assert suffixes == [".html", ".html", ".pdf"]          # spaghetti + mühendislik raporu (HTML, PDF)
+    assert all(Path(a).stat().st_size > 10_000 for a in analysis.artifacts)
     assert analysis.bottlenecks["bottleneck_station_id"] == analysis.baseline_sim.bottleneck_station_id
 
 
@@ -193,7 +195,6 @@ def test_offline_with_real_client_without_key_never_calls_sdk(db, tmp_path):
     assert client._sdk is None   # SDK hiç yaratılmadı
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-01: offline 'tesisi analiz et' sonucu DB'ye yazmıyor ve rapor üretmiyor (§16 adım 10)")
 def test_offline_analysis_produces_report_like_step_10(db, tmp_path):
     reply = FactoryFlowAgent(None, ToolExecutor(ToolContext(artifact_dir=tmp_path / "a"))).handle(
         "Bu tesisi analiz et", "demo-project")
@@ -201,7 +202,6 @@ def test_offline_analysis_produces_report_like_step_10(db, tmp_path):
     assert ".pdf" in kinds or any("report_" in a for a in reply.artifacts)
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-01: offline analiz simülasyon/optimizasyon kaydı bırakmıyor; Raporlar sayfası 'önce simülasyon çalıştırın' diyor")
 def test_offline_analysis_persists_results_for_reports_page(db, tmp_path):
     FactoryFlowAgent(None, ToolExecutor(ToolContext(artifact_dir=tmp_path / "a"))).handle(
         "Bu tesisi analiz et", "demo-project")

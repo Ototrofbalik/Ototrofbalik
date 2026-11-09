@@ -268,7 +268,7 @@ def test_layout_designer_add_move_delete_save_and_discard(app):
     assert len(vs) == 2
     assert len(services.get_layout("demo-project", vs[1]["id"]).workstations) == 8     # yeni sürüm DB'de var
     # (F-06 geçici çözümü: kullanıcı senaryo seçiciden yeni sürümü seçer)
-    app.selectbox(key="scenario_demo-project").set_value(vs[1]["id"]).run()
+    [b for b in app.selectbox if b.key.startswith("scenario_demo-project")][0].set_value(vs[1]["id"]).run()
     assert [v["active"] for v in services.list_layout_versions("demo-project")] == [False, True]
     # taşı -> taslağı at
     app.selectbox(key="mv_sid").set_value("raw").run()
@@ -314,7 +314,6 @@ def test_scenario_switch_and_comparison_page(app):
     assert any("HAYIR" in w.value for w in app.warning)                     # seed farklı -> dürüst uyarı
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-06: kayıttan sonra senaryo seçici eski değeri tutuyor ve yeni sürümü hemen eski sürüme geri aktive ediyor")
 def test_saved_draft_stays_active_after_rerun(app):
     _demo(app)
     _page(app, "Layout Designer")
@@ -330,7 +329,6 @@ def test_saved_draft_stays_active_after_rerun(app):
     assert len(services.get_layout("demo-project").workstations) == 8
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="F-06: optimizasyon alternatifi uygulanınca yeni sürüm aktif kalmıyor (senaryo seçici geri alıyor)")
 def test_applied_optimization_alternative_stays_active(app):
     _demo(app)
     _page(app, "Optimization")

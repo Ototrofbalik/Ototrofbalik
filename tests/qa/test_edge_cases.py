@@ -65,7 +65,6 @@ def test_empty_layout_without_products_gives_explicit_error(demo_project):
         analyze_facility(p, optimize=True)
 
 
-@pytest.mark.xfail(strict=True, raises=pytest.fail.Exception, reason="F-05: ürün rotası olmayan istasyona başvuruyor -> pipeline ham KeyError ('raw'); açık hata/UNKNOWN_STATION yok")
 def test_products_referencing_missing_stations_get_clear_error(demo_project):
     empty = Layout(id="e", name="e", facility=Facility(width=30, height=20), workstations=[], corridors=[])
     p = Project(id="e", name="e", layout=empty, products=demo_project.products, sim_config=demo_project.sim_config)
