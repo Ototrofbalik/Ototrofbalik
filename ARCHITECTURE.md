@@ -62,7 +62,7 @@ Streamlit (frontend/)  ──HTTP──▶ FastAPI (backend/api) ─┐
 | gemini-engineer | Sonnet | backend/agent/, tests/test_agent_tools.py, tests/fakes/ |
 | frontend-reporting-engineer | Sonnet | frontend/, backend/reporting/, tests/test_reports.py |
 | qa-engineer | Sonnet | tests/test_end_to_end.py, tests/qa/, QA_REPORT.md (üretim koduna DOKUNMAZ) |
-| **master-architect** | Opus | backend/schemas/, backend/demo/, ARCHITECTURE.md, TASKS.md, .claude/, requirements, pyproject, README, entegrasyon |
+| **master-architect** | Opus | backend/schemas/, backend/demo/, backend/pipeline.py (analyze_facility), ARCHITECTURE.md, TASKS.md, .claude/, requirements, pyproject, README, entegrasyon |
 
 Her ajan ayrı **git worktree**'de çalışır (branch `agent/<ad>`); Master birleştirir. Başka ajanın dosyası gerekiyorsa değiştirmez, rapora yazar.
 
