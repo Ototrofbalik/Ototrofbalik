@@ -8,7 +8,7 @@ Durum: ☐ bekliyor · ◐ sürüyor · ☑ bitti. Kapı = pytest+ruff yeşil.
 - ☑ Demo fabrika (`backend/demo`), modül stub'ları
 - ☑ ARCHITECTURE.md, TASKS.md, `.claude/agents/*`
 
-## Dalga 1 — paralel (3 ajan) ◐  [bağımsız; yalnız sözleşmelere bağlı]
+## Dalga 1 — paralel (3 ajan) ☑ (G1 geçti: 101 test, ruff temiz)  [bağımsız; yalnız sözleşmelere bağlı]
 | ID | Ajan | İş | Kabul |
 |---|---|---|---|
 | W1-BE | backend-engineer (Sonnet) | SQLAlchemy tabloları (15 tablo), config/settings, services.py (proje/layout sürüm/sim/opt kayıt, demo yükleme, JSON/CSV/Excel import-export), FastAPI uçları, Google Sheets/Drive adaptör arayüzü (OAuth yokken devre dışı) | DB round-trip testleri, API TestClient testleri |
