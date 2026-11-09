@@ -10,7 +10,7 @@ from .simulation import CostConfig, SimConfig
 
 
 class Project(Strict):
-    id: str
+    id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")   # dosya yolu / URL için güvenli
     name: str
     description: str = ""
     is_demo: bool = False

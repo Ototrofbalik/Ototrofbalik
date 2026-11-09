@@ -354,6 +354,8 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
 
     # 12 --------------------------------------------------------------- AI
     if ai_text:
+        from backend.agent.task_logger import mask_text
+        ai_text = mask_text(ai_text)
         sections.append(_section(12, "ai_recommendations", paragraphs=[
             ai_text, "Not: AI yorumu yalnız bu raporda hesaplanmış metriklere dayanmalıdır; sayıların kaynağı "
             "raporun tablolarıdır."], bullets=list(bn["findings"])))

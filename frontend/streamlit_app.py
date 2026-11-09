@@ -42,7 +42,7 @@ def main() -> None:
             vids = [v["id"] for v in ctx.layout_versions]
             labels = {v["id"]: f"v{v['version']} — {v['name']}" for v in ctx.layout_versions}
             pick = st.selectbox("Aktif senaryo (layout sürümü)", vids, index=vids.index(active),
-                                format_func=labels.get, key=f"scenario_{ctx.project.id}")
+                                format_func=labels.get, key=f"scenario_{ctx.project.id}_{active}")
             if pick != active:
                 ok, _ = state.guarded("Senaryo değiştirme", services.activate_layout_version, ctx.project.id, pick)
                 if ok:

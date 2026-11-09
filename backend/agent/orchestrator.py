@@ -162,7 +162,19 @@ class FactoryFlowAgent:
                                    (time.perf_counter() - t0) * 1000,
                                    output={"valid": analysis.validation.valid,
                                            "steps": [s.step for s in analysis.steps if s.ok]})
+        self._persist_analysis(pid, analysis)
         return summarize_analysis(analysis, project, notes), list(analysis.artifacts)
+
+    @staticmethod
+    def _persist_analysis(pid: str, analysis: Any) -> None:
+        """Çevrimdışı analiz sonuçlarını (simülasyon, optimizasyon, rapor dosyaları) kalıcı kaydet."""
+        if analysis.baseline_sim is not None:
+            services.record_simulation_run(pid, analysis.baseline_sim, "analiz (çevrimdışı)")
+        if analysis.optimization is not None:
+            services.save_optimization(pid, analysis.optimization)
+        for a in analysis.artifacts:
+            if a.endswith((".html", ".pdf")) and "report_" in a:
+                services.save_report(pid, "pdf" if a.endswith(".pdf") else "html", a, title="Çevrimdışı analiz raporu")
 
     # -- sonuç ---------------------------------------------------------------------------------
     def _finish(self, task_id: str, text: str, results: list[ToolResult], pending: list[PendingChange],

@@ -22,6 +22,15 @@ def register_error_handlers(app: FastAPI) -> None:
     async def _nr(_: Request, exc: services.ModuleNotReady) -> JSONResponse:
         return JSONResponse(status_code=501, content={"detail": str(exc)})
 
+    @app.exception_handler(ValueError)
+    async def _val(_: Request, exc: ValueError) -> JSONResponse:
+        # SimulationError, UnreachableFlowError vb. alan hataları: istemci girdisi/veri tutarsızlığı
+        return JSONResponse(status_code=422, content={"detail": f"{type(exc).__name__}: {exc}"})
+
+    @app.exception_handler(KeyError)
+    async def _key(_: Request, exc: KeyError) -> JSONResponse:
+        return JSONResponse(status_code=422, content={"detail": f"Veri tutarsızlığı: bilinmeyen kayıt {exc}"})
+
     @app.exception_handler(services.ImportDataError)
     async def _bad(_: Request, exc: services.ImportDataError) -> JSONResponse:
         return JSONResponse(status_code=422, content={"detail": str(exc)})

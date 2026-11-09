@@ -14,6 +14,7 @@ from backend.optimization.engine import optimize_layout
 from backend.routing.engine import compute_flow_metrics, compute_routes, derive_flow_edges
 from backend.schemas import (
     FlowMetrics,
+    IssueSeverity,
     OptimizationConfig,
     OptimizationResult,
     Project,
@@ -21,6 +22,7 @@ from backend.schemas import (
     ScenarioComparison,
     SimResult,
     Strict,
+    ValidationIssue,
     ValidationReport,
 )
 from backend.spaghetti.chart import spaghetti_figure
@@ -54,6 +56,18 @@ def analyze_facility(project: Project, optimize: bool = True, opt_config: Optimi
     if not val.valid:
         return res  # geçersiz layout ile analiz yapılmaz
 
+    known = {w.id for w in project.layout.workstations}
+    used = {st.station_id for pr in project.products for st in pr.route} | {
+        x for e in project.flow_edges for x in (e.from_id, e.to_id)}
+    missing = sorted(used - known)
+    if missing:
+        res.validation = res.validation.model_copy(update={"valid": False, "issues": [
+            *res.validation.issues, ValidationIssue(code="UNKNOWN_STATION", severity=IssueSeverity.ERROR,
+                                                    message=f"Ürün rotası/akış layout'ta olmayan istasyonlara başvuruyor: {missing}",
+                                                    entity_ids=missing)]})
+        steps.append(StepLog(step="project_consistency", ok=False, detail=f"bilinmeyen istasyon: {missing}"))
+        return res
+
     edges = project.flow_edges or derive_flow_edges(project)
     res.routes = compute_routes(project.layout, edges)
     res.flow = compute_flow_metrics(project.layout, edges, res.routes, project)
@@ -80,6 +94,13 @@ def analyze_facility(project: Project, optimize: bool = True, opt_config: Optimi
         if best is not None and best.sim is not None:
             res.comparison = compare_results(res.baseline_sim, best.sim, res.flow, best.flow, project)
             steps.append(StepLog(step="scenario_comparison", ok=True, detail=f"en iyi: {best.id}"))
+    if out_dir is not None:
+        from backend.reporting.builder import build_report_context, export_html, export_pdf
+        ctx = build_report_context(project, res.baseline_sim, res.optimization)
+        for exporter in (export_html, export_pdf):
+            path = exporter(ctx, out_dir)
+            res.artifacts.append(str(path))
+        steps.append(StepLog(step="engineering_report", ok=True, detail="HTML + PDF"))
     return res
 
 
