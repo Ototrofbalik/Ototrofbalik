@@ -126,7 +126,7 @@ def test_ten_pages_render_without_exception_or_error(app):
     for page in PAGES:
         _page(app, page)
         assert not app.error, (page, [e.value for e in app.error])
-    assert len(PAGES) == 10
+    assert len(PAGES) == 11 and "Digital Twin" in PAGES   # master prompt'taki 10 sayfa + Digital Twin
     _btn(app, "top_sim").click().run()
     for page in PAGES:                   # simülasyon varken de
         _page(app, page)

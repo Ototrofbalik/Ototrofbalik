@@ -344,7 +344,7 @@ def digital_twin(ctx: Ctx) -> None:
     label, layout, sim = scenarios[labels.index(pick)]
     st.caption("Olay logunun yeniden oynatımıdır (yalnız replikasyon 0). Modellenmeyenler oynatıcıda belirtilir.")
     ok, html_doc = state.guarded("Digital Twin", lambda: render_twin_html(
-        build_twin_data(layout, state.flow_bundle(p, layout)[0], sim, scenario_label=label.split(" (")[0]),
+        build_twin_data(layout, state.flow_bundle(p, layout)[0], sim, scenario_label=label.split(" (")[0], products=p.products),
         f"{p.name} - Digital Twin ({label})"))
     if not ok:
         return

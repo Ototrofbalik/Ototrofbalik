@@ -179,11 +179,17 @@ function pathPos(pi, u) {
   return { x: a[0] + (b[0] - a[0]) * f, y: a[1] + (b[1] - a[1]) * f, h: Math.atan2(b[1] - a[1], b[0] - a[0]) };
 }
 function stPoint(kind, ref) {
+  /* Sözleşme (schema.py): LOAD/UNLOAD'da ref = paths indeksi (yükleme pts[0], boşaltma pts[-1]);
+     IDLE/WORK'te ref = istasyon indeksi (-1 = park tepsisi). */
+  if (kind === 2 || kind === 4) {
+    var P = PATHS[ref]; if (!P || !P.pts.length) return null;
+    var q = kind === 2 ? P.pts[0] : P.pts[P.pts.length - 1];
+    return { x: q[0], y: q[1] };
+  }
   if (ref < 0 || ref >= ST.length) return null;
   var s = ST[ref];
-  if (kind === 2) return { x: s.out[0], y: s.out[1] };   /* VSEG_LOAD */
   if (kind === 1) return { x: s.cx, y: s.cy };           /* VSEG_WORK */
-  return { x: s.inp[0], y: s.inp[1] };                   /* IDLE, UNLOAD */
+  return { x: s.inp[0], y: s.inp[1] };                   /* VSEG_IDLE */
 }
 function vSegEnd(si) { /* aralığın bittiği nokta */
   var k = VS.kind[si];
