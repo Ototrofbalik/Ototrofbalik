@@ -312,6 +312,55 @@ def simulation(ctx: Ctx) -> None:
         st.dataframe(runs, hide_index=True)
 
 
+# --------------------------------------------------------------------------- Digital Twin
+def _twin_scenarios(ctx: Ctx) -> list[tuple[str, object, object]]:
+    """(etiket, layout, sim) listesi: 'Mevcut' + (baseline eşleşiyorsa) simülasyonu dolu optimizasyon alternatifleri."""
+    p = ctx.project
+    assert p is not None and ctx.sim is not None
+    out: list[tuple[str, object, object]] = [("Mevcut", p.layout, ctx.sim)]
+    if ctx.opt is not None and ctx.opt[1].baseline_layout_id == p.layout.id:
+        for alt in ctx.opt[1].alternatives:
+            if alt.sim is not None:
+                out.append((f"{alt.name} (mesafe %{alt.distance_reduction_pct:.1f} azalma, aynı seed)", alt.layout, alt.sim))
+    return out
+
+
+def digital_twin(ctx: Ctx) -> None:
+    if not _need_project(ctx):
+        return
+    if not _need_sim(ctx):
+        return
+    p = ctx.project
+    assert p is not None
+    try:
+        from backend.twin import build_twin_data
+        from backend.twin.render import render_twin_html
+    except ImportError as exc:
+        st.error(f"Digital Twin veri modülü henüz hazır değil ({exc}). Sahte animasyon üretilmez.")
+        return
+    scenarios = _twin_scenarios(ctx)
+    labels = [s[0] for s in scenarios]
+    pick = st.selectbox("Senaryo", labels, key="twin_scn") if len(labels) > 1 else labels[0]
+    label, layout, sim = scenarios[labels.index(pick)]
+    st.caption("Olay logunun yeniden oynatımıdır (yalnız replikasyon 0). Modellenmeyenler oynatıcıda belirtilir.")
+    ok, html_doc = state.guarded("Digital Twin", lambda: render_twin_html(
+        build_twin_data(layout, state.flow_bundle(p, layout)[0], sim, scenario_label=label.split(" (")[0]),
+        f"{p.name} - Digital Twin ({label})"))
+    if not ok:
+        return
+    st.components.v1.html(html_doc, height=760, scrolling=False)
+    st.download_button("Dijital ikizi HTML olarak indir", data=html_doc.encode("utf-8"),
+                       file_name=f"digital_twin_{p.id}.html", mime="text/html", key="twin_dl")
+    if st.button("Raporlara kaydet", key="twin_save"):
+        out = state.REPORT_DIR / p.id
+        out.mkdir(parents=True, exist_ok=True)
+        path = out / f"digital_twin_{uuid.uuid4().hex[:8]}.html"
+        path.write_text(html_doc, encoding="utf-8")
+        ok2, _ = state.guarded("Rapor kaydı", services.save_report, p.id, "twin_html", str(path), f"Digital Twin - {label}")
+        if ok2:
+            st.success(f"Kaydedildi: {path}")
+
+
 # --------------------------------------------------------------------------- Optimization
 def optimization(ctx: Ctx) -> None:
     if not _need_project(ctx):
@@ -471,7 +520,7 @@ def settings_page(ctx: Ctx) -> None:
 
 PAGE_FUNCS = {
     "Dashboard": dashboard, "Layout Designer": layout_designer, "Process Flow": process_flow,
-    "Spaghetti Analysis": spaghetti, "Simulation": simulation, "Optimization": optimization,
+    "Spaghetti Analysis": spaghetti, "Simulation": simulation, "Digital Twin": digital_twin, "Optimization": optimization,
     "Scenario Comparison": scenario_comparison, "AI Engineer": ai_engineer, "Reports": reports,
     "Settings": settings_page,
 }
