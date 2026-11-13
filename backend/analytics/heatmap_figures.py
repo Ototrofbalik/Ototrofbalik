@@ -26,6 +26,7 @@ _FT_LABEL = {
 }
 _MAX_CELL_TEXT_CELLS = 400
 _WRAP = 170
+_LINE_PX = 15
 
 
 # --------------------------------------------------------------------------- yardımcılar
@@ -62,6 +63,10 @@ def _fmt_hover(grid: TimeGrid, v: float | None) -> str:
     if grid.metric == "max_queue":
         return f"{round(v)} {grid.unit}"
     return f"{v:.2f} {grid.unit}"
+
+
+def _cbar(metric: str, grid: TimeGrid) -> str:
+    return metric if _is_util(grid) else f"{metric} ({grid.unit})"
 
 
 def _vmax(grids: list[TimeGrid]) -> float:
@@ -153,10 +158,12 @@ def _shade_warmup(fig: go.Figure, grid: TimeGrid, n_rows: int, col: int | None) 
 
 
 def _footer(fig: go.Figure, lines: list[str], bottom: int) -> None:
-    fig.update_layout(margin={"l": 90, "r": 40, "t": 90, "b": bottom})
+    fig.update_layout(margin={"l": 125, "r": 40, "t": 90, "b": bottom})
     if lines:
-        fig.add_annotation(text="<br>".join(_wrap_lines(lines)), xref="paper", yref="paper", x=0, y=0,
-                           yshift=-(bottom - 60), xanchor="left", yanchor="top", showarrow=False, align="left",
+        wrapped = _wrap_lines(lines)
+        # Notlar alt kenar boşluğunun en altına, satır sayısı kadar yer ayrılarak yerleştirilir (kırpılmaz).
+        fig.add_annotation(text="<br>".join(wrapped), xref="paper", yref="paper", x=0, y=0,
+                           yshift=-(bottom - _LINE_PX * len(wrapped) - 8), xanchor="left", yanchor="top", showarrow=False, align="left",
                            font={"size": 10, "color": "#616161"})
 
 
@@ -174,7 +181,7 @@ def _footer_lines(grids: list[TimeGrid], warm: bool) -> list[str]:
 
 
 def _bottom_for(lines: list[str], base: int, n_bins: int) -> int:
-    return base + 14 * len(_wrap_lines(lines)) + (40 if n_bins > 6 else 0)
+    return base + _LINE_PX * len(_wrap_lines(lines)) + (40 if n_bins > 6 else 0)
 
 
 # --------------------------------------------------------------------------- tek grid
@@ -190,7 +197,7 @@ def time_grid_figure(grid: TimeGrid, title: str = "", zmax: float | None = None)
         zmin, zhi = 0.0, 1.0 if zmax is None else zmax
     else:
         zmin, zhi = 0.0, zmax if zmax is not None else _vmax([grid])
-    fig = go.Figure(_grid_trace(grid, rows, zmin, zhi, True, f"{metric} ({grid.unit})"))
+    fig = go.Figure(_grid_trace(grid, rows, zmin, zhi, True, _cbar(metric, grid)))
     _style_axes(fig, rows, grid, None)
     warm = _shade_warmup(fig, grid, len(rows), None)
     t = base_title
@@ -227,7 +234,7 @@ def time_grid_compare_figure(before: TimeGrid, after: TimeGrid, labels: tuple[st
         zmin, zmax = 0.0, _vmax([before, after])
     fig = make_subplots(rows=1, cols=2, subplot_titles=labels, horizontal_spacing=0.06, shared_yaxes=True)
     fig.add_trace(_grid_trace(before, rows, zmin, zmax, False, ""), row=1, col=1)
-    fig.add_trace(_grid_trace(after, rows, zmin, zmax, True, f"{metric} ({after.unit})"), row=1, col=2)
+    fig.add_trace(_grid_trace(after, rows, zmin, zmax, True, _cbar(metric, after)), row=1, col=2)
     _style_axes(fig, rows, before, 1)
     _style_axes(fig, rows, after, 2)
     fig.update_yaxes(title_text=None, showticklabels=False, row=1, col=2)

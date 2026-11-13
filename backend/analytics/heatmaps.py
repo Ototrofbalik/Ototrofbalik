@@ -102,11 +102,11 @@ def _horizon(sim: SimResult) -> tuple[float, float, bool, list[str]]:
 def _common_notes(sim: SimResult) -> list[str]:
     notes = ["Olay logu yalnız replikasyon 0'dır; dilim değerleri replikasyon 0'a aittir."]
     if sim.config.replications > 1:
-        notes.append(f"{sim.config.replications} replikasyon var; StationStats ortalamadır, bu nedenle tam ufuk "
+        notes.append(f"{sim.config.replications} replikasyon var; istasyon istatistikleri ortalamadır, bu nedenle tam ufuk "
                      "ağırlıklı ortalama yalnız replikasyon 0 ile karşılaştırılabilir.")
     if sim.config.warmup_s > 0:
         notes.append(f"Isınma {sim.config.warmup_s:.0f} s: ızgara 0..süre aralığını gösterir, ısınma dilimleri ham "
-                     "değerdir; motorun StationStats değerleri yalnız ısınma sonrası pencereden hesaplanır.")
+                     "değerdir; simülasyonun istasyon istatistikleri yalnız ısınma sonrası pencereden hesaplanır.")
     return notes
 
 
@@ -123,9 +123,9 @@ def station_time_utilization(sim: SimResult, layout: Layout, bin_s: float = 3600
             _add_overlap(acc, edges, max(a, 0.0), min(b, horizon))
         values.append([min(1.0, v / (ws.capacity * (edges[k + 1] - edges[k]))) for k, v in enumerate(acc)])
     notes = [
-        "Doluluk = dilimdeki işlem meşguliyeti / (kapasite × dilim uzunluğu); meşguliyet PROCESS_STARTED→"
-        "PROCESS_FINISHED aralığıdır ve hazırlık (setup) süresini içerir (motorla aynı). Ufukta yarım kalan işlem "
-        "süre sonunda kesilir.",
+        "Doluluk = dilimdeki işlem meşguliyeti / (kapasite × dilim uzunluğu); meşguliyet, işlemin başlangıcından "
+        "bitişine kadar geçen süredir (hazırlık dahil, simülasyonla aynı). Ufukta yarım kalan işlem süre sonunda "
+        "kesilir.",
         "Son dilim kısa olabilir; her dilim kendi gerçek uzunluğuna göre normalize edilir.",
         *_common_notes(sim), *extra,
     ]
@@ -177,11 +177,11 @@ def station_time_queue(sim: SimResult, layout: Layout, bin_s: float = 3600.0, st
             values.append([float(v) for v in mx])
     what = "dilimde zaman ağırlıklı ortalama kuyruk uzunluğu" if stat == "avg" else "dilimdeki en büyük kuyruk uzunluğu"
     notes = [
-        "Kuyruk = QUEUE_ENTERED→PROCESS_STARTED aralığındaki parti sayısı (aynı istasyon; istasyon kaynağını "
+        "Kuyruk = kuyruğa girişten işlem başlangıcına kadar bekleyen parti sayısı (istasyon kaynağını "
         f"bekleyenleri de, operatör bekleyenleri de içerir). Gösterilen: {what}.",
-        "Simülasyonun queue_len/max_queue_len değeri farklıdır: yalnız istasyon kaynağının kuyruğunu, giriş anında "
-        "sayar; operatör bekleyen partileri saymaz. Bu yüzden ısı haritası ile StationStats.max_queue_len birebir "
-        "eşleşmeyebilir.",
+        "Simülasyonun raporladığı en büyük kuyruk değeri farklıdır: yalnız istasyon kaynağının kuyruğunu, giriş "
+        "anında sayar; operatör bekleyen partileri saymaz. Bu yüzden ısı haritası ile istasyon istatistiklerindeki "
+        "en büyük kuyruk birebir eşleşmeyebilir.",
         "Aynı anda gerçekleşen olaylar log sırasıyla işlenir; yalnız pozitif süre süren kuyruk seviyeleri sayılır.",
         *_common_notes(sim), *extra,
     ]
@@ -219,7 +219,7 @@ def from_to_matrix(layout: Layout, metrics: FlowMetrics, order: list[str] | None
         moves[r][q] += c.moves_per_hour
         metres[r][q] += c.metres_per_hour
         dist[r][q] = c.distance_m
-    notes = ["Veriler FlowMetrics.cells'ten gelir; hücre yoksa hareket 0, mesafe boştur (yok)."]
+    notes = ["Veriler akış analizindeki istasyon çifti hücrelerinden gelir; hücre yoksa hareket 0, mesafe boştur (yok)."]
     if not order:
         notes.append("İstasyon sırası ürün rotası olarak layout'tan çıkarılamadı; hücrelerdeki ilk görülme sırası, "
                      "ardından kalan istasyonlar kullanıldı.")

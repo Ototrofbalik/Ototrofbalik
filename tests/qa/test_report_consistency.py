@@ -187,7 +187,7 @@ def test_excel_cells_equal_simresult_and_flow(report_bundle, analysis):
 
     wb = load_workbook(report_bundle["xlsx"], data_only=True)
     assert wb.sheetnames == ["Proje", "KPI", "İstasyonlar", "From-To", "Darboğaz", "Olay Özeti", "Alternatifler",
-                             "Karşılaştırma", "Metodoloji"]
+                             "Karşılaştırma", "Metodoloji", "Saatlik Doluluk", "Saatlik Kuyruk", "From-To Matrisi"]
     kpi_rows: dict = {}
     for r in wb["KPI"].iter_rows(values_only=True):       # ilk tablo = baseline KPI'ları (sonrakiler 'improvement')
         if r and r[0]:

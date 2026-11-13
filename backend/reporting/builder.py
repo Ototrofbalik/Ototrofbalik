@@ -15,6 +15,12 @@ from typing import Any
 import plotly.graph_objects as go
 
 from backend.analytics.bottleneck import analyze_bottlenecks, compare_results
+from backend.analytics.heatmap_figures import from_to_figure, time_grid_compare_figure, time_grid_figure
+from backend.analytics.heatmaps import (
+    from_to_matrix,
+    station_time_queue,
+    station_time_utilization,
+)
 from backend.layout.validation import validate_layout
 from backend.routing.engine import compute_flow_metrics, compute_routes, derive_flow_edges
 from backend.schemas import (
@@ -146,6 +152,17 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
     if comparison is not None and comparison.savings is not None:
         numbers["travel_cost_saving_per_hour"] = comparison.savings["travel_cost_per_hour"]
 
+    # Isı haritası verileri (replikasyon 0 olay logundan; saatlik dilim)
+    route_order: list[str] = []
+    for pr in project.products:
+        for step in pr.route:
+            if step.station_id not in route_order:
+                route_order.append(step.station_id)
+    util_grid = station_time_utilization(baseline_sim, layout, 3600.0)
+    queue_avg_grid = station_time_queue(baseline_sim, layout, 3600.0, "avg")
+    queue_max_grid = station_time_queue(baseline_sim, layout, 3600.0, "max")
+    ft_matrix = from_to_matrix(layout, flow, order=route_order)
+
     sections: list[dict] = []
 
     # 1 ---------------------------------------------------------------- Proje bilgileri
@@ -218,7 +235,9 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
         p4.append(f"Taşıma maliyeti {NOT_COMPUTED} (maliyet verisi yok).")
     if routes.unreachable:
         p4.append("ULAŞILAMAYAN rotalar: " + "; ".join(f"{a}->{b} ({v})" for a, b, v in routes.unreachable))
-    sections.append(_section(4, "material_flow", paragraphs=p4, tables=[
+    figs["heatmap_from_to"] = {"caption": "From-To ısı haritası (m/saat; sıra = ürün rotası)",
+                               "fig": from_to_figure(ft_matrix, "metres")}
+    sections.append(_section(4, "material_flow", paragraphs=p4, figures=["heatmap_from_to"], tables=[
         _table("from_to", "From-To tablosu", ["Nereden", "Nereye", "hareket/saat", "mesafe (m)", "m/saat"], ft_rows),
         _table("vehicle_distance", "Araç bazında mesafe (m/saat)", ["Araç", "m/saat"], veh_rows)]))
 
@@ -266,10 +285,15 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
         t7.append(_table("ci95", "%95 güven aralıkları", ["KPI", "ortalama", "alt", "üst", "n"],
                          [[n, c.mean, c.lo, c.hi, c.n] for n, c in baseline_sim.ci95.items()]))
     figs["util"] = {"caption": "İstasyon kullanım oranları", "fig": _fig_utilization(baseline_sim)}
-    sections.append(_section(7, "sim_results", paragraphs=list(baseline_sim.notes), tables=t7, figures=["util"]))
+    figs["heatmap_util"] = {"caption": "Saatlik doluluk (istasyon × zaman, replikasyon 0)",
+                            "fig": time_grid_figure(util_grid, "Saatlik doluluk")}
+    sections.append(_section(7, "sim_results", paragraphs=list(baseline_sim.notes), tables=t7,
+                             figures=["util", "heatmap_util"]))
 
     # 8 ---------------------------------------------------------------- Darboğaz
     figs["time_breakdown"] = {"caption": "Süre ayrışımı", "fig": _fig_time_breakdown(bn)}
+    figs["heatmap_queue"] = {"caption": "Saatlik ortalama kuyruk (istasyon × zaman, replikasyon 0)",
+                             "fig": time_grid_figure(queue_avg_grid, "Saatlik ortalama kuyruk")}
     sections.append(_section(8, "bottleneck", bullets=list(bn["findings"]), tables=[
         _table("bottleneck_ranking", "Darboğaz sıralaması",
                ["sıra", "istasyon", "skor", "kullanım", "ort. kuyruk bekleme (s)", "maks. kuyruk", "doygun"],
@@ -278,7 +302,7 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
         _table("resource_constraints", "Kaynak kısıtları", ["araç", "kullanım", "mesafe (m)", "doygun"],
                [[r["vehicle"], r["utilization"], r["distance_m"], r["saturated"]]
                 for r in bn["resource_constraints"]])],
-        figures=["time_breakdown"]))
+        figures=["time_breakdown", "heatmap_queue"]))
 
     # 9 ---------------------------------------------------------------- Önerilen layout
     if opt is None:
@@ -317,6 +341,11 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
         sections.append(_section(10, "scenario_comparison", paragraphs=[f"Karşılaştırma yapılamadı: {why}"]))
     else:
         figs["kpi_deltas"] = {"caption": "KPI değişimi (%)", "fig": _fig_deltas(comparison)}
+        assert best is not None and best.sim is not None
+        compare_grid = station_time_utilization(best.sim, best.layout, 3600.0)
+        figs["heatmap_compare"] = {
+            "caption": f"Saatlik doluluk: mevcut / {best.name} (ortak renk ölçeği)",
+            "fig": time_grid_compare_figure(util_grid, compare_grid, ("Mevcut", best.name))}
         sections.append(_section(10, "scenario_comparison", paragraphs=[
             f"Baseline: {comparison.baseline_id}; senaryo: {comparison.scenario_id}. Aynı seed (CRN): "
             f"{'evet' if comparison.same_seed else 'HAYIR'}; seed {comparison.seed}; "
@@ -325,7 +354,7 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
                    ["KPI", "birim", "baseline", "senaryo", "fark", "fark %", "daha iyi"],
                    [[d.name, d.unit, d.baseline, d.scenario, d.delta_abs, d.delta_pct,
                      "—" if d.better is None else ("evet" if d.better else "hayır")] for d in comparison.deltas])],
-            figures=["kpi_deltas"]))
+            figures=["kpi_deltas", "heatmap_compare"]))
 
     # 11 --------------------------------------------------------------- İyileştirme KPI'ları
     if comparison is None:
@@ -394,7 +423,16 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
         meth += [["Karşılaştırma seed", comparison.seed], ["Ortak rastgele sayı (CRN)", comparison.same_seed]]
     sections.append(_section(14, "methodology", paragraphs=[
         "Aynı proje, aynı seed ve parametrelerle simülasyon ve rotalama yeniden çalıştırıldığında aynı sonuçlar "
-        "elde edilir. Hesaplamalar domain modüllerinde yapılır; rapor yalnız bu sonuçları sunar."],
+        "elde edilir. Hesaplamalar domain modüllerinde yapılır; rapor yalnız bu sonuçları sunar.",
+        "Isı haritası doluluk tanımı: dilimdeki işlem meşguliyeti / (kapasite × dilim uzunluğu). Meşguliyet, "
+        "simülasyon olay logundaki PROCESS_STARTED ile PROCESS_FINISHED olayları arasındaki süredir (hazırlık "
+        "süresi dahil); ufukta yarım kalan işlem süre sonunda kesilir. Yalnız replikasyon 0 olay logu kullanılır.",
+        "Isı haritası kuyruk tanımı: QUEUE_ENTERED ile PROCESS_STARTED olayları arasında bekleyen parti sayısıdır; "
+        "istasyon kaynağını bekleyenleri ve operatör bekleyenleri birlikte sayar. Simülasyonun raporladığı en "
+        "büyük kuyruk (maks. kuyruk) yalnız istasyon kaynağının kuyruğunu giriş anında sayar, operatör "
+        "bekleyenleri saymaz; bu nedenle iki değer birebir eşleşmeyebilir.",
+        "From-To ısı haritası: değerler akış analizi çıktısındaki (FlowMetrics.cells) istasyon çifti hücrelerinden "
+        "gelir; istasyon sırası ürün rotası sırasıdır."],
         tables=[_table("methodology", "Parametreler", ["Parametre", "Değer"], meth)]))
 
     return {
@@ -409,7 +447,9 @@ def build_report_context(project: Project, baseline_sim: SimResult, opt: Optimiz
         "_png": {},
         "_objects": {"project": project, "baseline_sim": baseline_sim, "opt": opt, "best": best, "flow": flow,
                      "routes": routes, "best_routes": best_routes, "comparison": comparison,
-                     "validation": validation},
+                     "validation": validation,
+                     "util_grid": util_grid, "queue_avg_grid": queue_avg_grid, "queue_max_grid": queue_max_grid,
+                     "from_to": ft_matrix},
     }
 
 

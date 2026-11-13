@@ -9,6 +9,8 @@ import streamlit as st
 
 from backend import services
 from backend.analytics.bottleneck import analyze_bottlenecks, compare_results
+from backend.analytics.heatmap_figures import from_to_figure, time_grid_compare_figure, time_grid_figure
+from backend.analytics.heatmaps import from_to_matrix, station_time_queue, station_time_utilization
 from backend.config import get_settings
 from backend.layout import editing
 from backend.layout.validation import validate_layout
@@ -42,6 +44,16 @@ def _need_project(ctx: Ctx) -> bool:
 
 def _chart(fig: go.Figure, key: str) -> None:
     st.plotly_chart(fig, key=key, width="stretch")
+
+
+def route_order(project) -> list[str]:
+    """İstasyon sırası: ürün rotalarındaki ilk görülme sırası (From-To ısı haritası için)."""
+    order: list[str] = []
+    for pr in project.products:
+        for step in pr.route:
+            if step.station_id not in order:
+                order.append(step.station_id)
+    return order
 
 
 def _need_sim(ctx: Ctx) -> bool:
@@ -217,14 +229,13 @@ def process_flow(ctx: Ctx) -> None:
     st.markdown("**From-To tablosu**")
     st.dataframe([{"nereden": c.from_id, "nereye": c.to_id, "hareket/sa": c.moves_per_hour, "mesafe (m)": c.distance_m,
                    "m/saat": c.metres_per_hour} for c in flow.cells], hide_index=True)
-    ids = [s.id for s in p.layout.workstations]
-    z = [[0.0] * len(ids) for _ in ids]
-    for cell in flow.cells:
-        z[ids.index(cell.from_id)][ids.index(cell.to_id)] += cell.moves_per_hour
-    fig = go.Figure(go.Heatmap(z=z, x=ids, y=ids, colorscale="Blues", colorbar={"title": "hareket/sa"}))
-    fig.update_layout(title="From-To matrisi (hareket/saat)", xaxis_title="Nereye", yaxis_title="Nereden",
-                      yaxis={"autorange": "reversed"})
-    _chart(fig, "pf_matrix")
+    st.markdown("**From-To ısı haritası**")
+    labels = {"moves": "Hareket sıklığı (hareket/sa)", "metres": "Taşıma yükü (m/sa)", "distance": "Mesafe (m)"}
+    value = st.radio("Gösterilen değer", list(labels), format_func=labels.get, horizontal=True, key="pf_value")
+    ok, fig = state.guarded("From-To ısı haritası", lambda: from_to_figure(
+        from_to_matrix(p.layout, flow, order=route_order(p)), value))
+    if ok:
+        _chart(fig, "pf_matrix")
     if routes.unreachable:
         st.error("Ulaşılamayan rotalar: " + "; ".join(f"{a}→{b} ({v})" for a, b, v in routes.unreachable))
 
@@ -255,6 +266,24 @@ def spaghetti(ctx: Ctx) -> None:
 
 
 # --------------------------------------------------------------------------- Simulation
+def _sim_heatmaps(p, sim) -> None:
+    """Saatlik doluluk ve kuyruk ısı haritaları (yalnız kayıtlı simülasyon olayları; replikasyon 0)."""
+    st.markdown("**Zaman içinde istasyon ısı haritaları**")
+    c = st.columns(2)
+    bin_min = c[0].radio("Zaman dilimi", [60, 30], format_func=lambda m: f"{m} dakika", horizontal=True,
+                         key="hm_bin")
+    stat = c[1].radio("Kuyruk değeri", ["avg", "max"], horizontal=True, key="hm_stat",
+                      format_func=lambda x: "Ortalama kuyruk" if x == "avg" else "En büyük kuyruk")
+    ok, fig = state.guarded("Doluluk ısı haritası", lambda: time_grid_figure(
+        station_time_utilization(sim, p.layout, bin_min * 60.0), "Saatlik doluluk"))
+    if ok:
+        _chart(fig, "sim_hm_util")
+    ok, fig = state.guarded("Kuyruk ısı haritası", lambda: time_grid_figure(
+        station_time_queue(sim, p.layout, bin_min * 60.0, stat), "Saatlik kuyruk"))
+    if ok:
+        _chart(fig, "sim_hm_queue")
+
+
 def simulation(ctx: Ctx) -> None:
     if not _need_project(ctx):
         return
@@ -307,6 +336,7 @@ def simulation(ctx: Ctx) -> None:
     if sim.ci95:
         st.markdown("**%95 güven aralıkları**")
         st.dataframe([{"kpi": n, **c_.model_dump()} for n, c_ in sim.ci95.items()], hide_index=True)
+    _sim_heatmaps(p, sim)
     runs = services.list_simulation_runs(p.id)
     with st.expander(f"Çalıştırma geçmişi ({len(runs)})"):
         st.dataframe(runs, hide_index=True)
@@ -415,11 +445,25 @@ def optimization(ctx: Ctx) -> None:
 
 
 # --------------------------------------------------------------------------- Scenario Comparison
+def _occupancy_compare(before_sim, before_layout, after_sim, after_layout, key: str,
+                       labels: tuple[str, str] = ("Önce", "Sonra")) -> None:
+    ok, fig = state.guarded("Doluluk karşılaştırması", lambda: time_grid_compare_figure(
+        station_time_utilization(before_sim, before_layout), station_time_utilization(after_sim, after_layout),
+        labels))
+    if ok:
+        _chart(fig, key)
+
+
 def scenario_comparison(ctx: Ctx) -> None:
     if not _need_project(ctx):
         return
     p = ctx.project
     assert p is not None
+    if ctx.sim is not None and ctx.opt and ctx.opt[1].baseline_layout_id == p.layout.id:
+        best = next((a for a in ctx.opt[1].alternatives if a.id == ctx.opt[1].best_alternative_id), None)
+        if best is not None and best.sim is not None:
+            st.markdown("**Saatlik doluluk: mevcut / en iyi alternatif (ortak renk ölçeği)**")
+            _occupancy_compare(ctx.sim, p.layout, best.sim, best.layout, "cmp_hm_best", ("Mevcut", best.name))
     runs = services.list_simulation_runs(p.id)
     if len(runs) < 2:
         st.info("Karşılaştırma için en az iki simülasyon kaydı gerekir (farklı layout sürümleri veya parametrelerle).")
@@ -443,6 +487,8 @@ def scenario_comparison(ctx: Ctx) -> None:
     st.dataframe([{"KPI": d.name, "birim": d.unit, "baseline": d.baseline, "senaryo": d.scenario, "fark": d.delta_abs,
                    "fark %": d.delta_pct, "daha iyi": d.better} for d in cmp.deltas], hide_index=True)
     _chart(builder.delta_figure(cmp), "cmp_fig")
+    st.markdown("**Saatlik doluluk: baseline / senaryo (ortak renk ölçeği)**")
+    _occupancy_compare(sa, pa.layout, sb, pb.layout, "cmp_hm_sel", ("Baseline", "Senaryo"))
     if cmp.savings is None:
         st.info("Tasarruf ve ROI hesaplanamadı: proje maliyet verisi yok.")
     else:

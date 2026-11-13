@@ -108,7 +108,8 @@ def test_queue_notes_turkish_definition(demo):
     p, _, sim = demo
     g = station_time_queue(sim, p.layout, 3600.0, "max")
     txt = " ".join(g.notes)
-    assert "QUEUE_ENTERED" in txt and "operatör" in txt and "queue_len" in txt
+    assert "kuyruğa giriş" in txt and "operatör" in txt and "en büyük kuyruk" in txt
+    assert "QUEUE_ENTERED" not in txt and "queue_len" not in txt and "StationStats" not in txt
     with pytest.raises(ValueError):
         station_time_queue(sim, p.layout, 3600.0, "median")
     with pytest.raises(ValueError):

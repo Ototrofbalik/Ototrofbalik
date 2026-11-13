@@ -9,7 +9,8 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
-FIG_SIZES = {"before_after": (1500, 650), "kpi_deltas": (1000, None)}
+FIG_SIZES = {"before_after": (1500, 650), "kpi_deltas": (1000, None), "heatmap_util": (1200, None),
+             "heatmap_queue": (1200, None), "heatmap_from_to": (1200, None), "heatmap_compare": (1600, None)}
 DEFAULT_FIG_SIZE = (1000, 650)
 
 
@@ -195,9 +196,82 @@ def export_excel(ctx: dict, out_dir: Path) -> Path:
     sheet("Alternatifler", ["alternatives", "moved"], note_from="proposed_layout")
     sheet("Karşılaştırma", ["comparison"], note_from="scenario_comparison")
     sheet("Metodoloji", ["methodology"])
+    _heatmap_sheets(wb, ctx)
     path = out_dir / _out_name(ctx, "xlsx")
     wb.save(path)
     return path
+
+
+def _grid_block(ws: Any, grid: Any, caption: str, row0: int, unit_hdr: str) -> int:
+    """TimeGrid -> sayfa: başlıkta birim; hücreler grid.values ile birebir."""
+    from openpyxl.styles import Font, PatternFill
+
+    from backend.analytics.heatmap_figures import _bin_labels
+
+    ws.cell(row=row0, column=1, value=caption).font = Font(bold=True)
+    hdr = ["İstasyon kimliği", "İstasyon"] + [f"{lb} ({unit_hdr})" for lb in _bin_labels(grid.bin_edges_s)]
+    for j, h in enumerate(hdr, start=1):
+        c = ws.cell(row=row0 + 1, column=j, value=h)
+        c.font = Font(bold=True)
+        c.fill = PatternFill("solid", fgColor="EDF2F7")
+    for i, (sid, name, vals) in enumerate(zip(grid.station_ids, grid.station_names, grid.values, strict=True),
+                                          start=row0 + 2):
+        ws.cell(row=i, column=1, value=sid)
+        ws.cell(row=i, column=2, value=name)
+        for j, v in enumerate(vals, start=3):
+            ws.cell(row=i, column=j, value=v)
+    r = row0 + 2 + len(grid.station_ids)
+    for n in grid.notes:
+        ws.cell(row=r, column=1, value=n)
+        r += 1
+    return r + 1
+
+
+def _heatmap_sheets(wb: Any, ctx: dict) -> None:
+    from openpyxl.styles import Font, PatternFill
+
+    o = ctx["_objects"]
+    label = ctx.get("data_label")
+    start = 3 if label else 1
+
+    ws = wb.create_sheet("Saatlik Doluluk")
+    if label:
+        ws.cell(row=1, column=1, value=label)
+    g = o["util_grid"]
+    _grid_block(ws, g, f"Saatlik doluluk ({g.unit}); replikasyon {g.replication_shown}", start, "oran 0–1")
+    _autowidth(ws)
+
+    ws = wb.create_sheet("Saatlik Kuyruk")
+    if label:
+        ws.cell(row=1, column=1, value=label)
+    r = _grid_block(ws, o["queue_avg_grid"], "Saatlik ortalama kuyruk (adet)", start, "adet, ortalama")
+    _grid_block(ws, o["queue_max_grid"], "Saatlik en büyük kuyruk (adet)", r, "adet, en büyük")
+    _autowidth(ws)
+
+    ws = wb.create_sheet("From-To Matrisi")
+    if label:
+        ws.cell(row=1, column=1, value=label)
+    ft = o["from_to"]
+    r = start
+    for caption, mat, unit in (("Hareket sıklığı", ft.moves_per_hour, "hareket/sa"),
+                               ("Taşıma yükü", ft.metres_per_hour, "m/sa"),
+                               ("İstasyonlar arası mesafe", ft.distance_m, "m")):
+        ws.cell(row=r, column=1, value=f"{caption} ({unit}); satır = nereden, sütun = nereye").font = Font(bold=True)
+        ws.cell(row=r + 1, column=1, value="Nereden / Nereye").font = Font(bold=True)
+        for j, nm in enumerate(ft.station_names, start=2):
+            c = ws.cell(row=r + 1, column=j, value=f"{nm} ({unit})")
+            c.font = Font(bold=True)
+            c.fill = PatternFill("solid", fgColor="EDF2F7")
+        for i, (nm, row) in enumerate(zip(ft.station_names, mat, strict=True), start=r + 2):
+            ws.cell(row=i, column=1, value=nm)
+            for j, v in enumerate(row, start=2):
+                ws.cell(row=i, column=j, value=v)
+        r += len(ft.station_names) + 3
+    ws.cell(row=r, column=1, value=f"Toplam taşıma yükü (m/sa): {ft.total_metres_per_hour}")
+    for n in ft.notes:
+        r += 1
+        ws.cell(row=r, column=1, value=n)
+    _autowidth(ws)
 
 
 # --------------------------------------------------------------------------- PNG
@@ -205,7 +279,9 @@ def export_png(ctx: dict, out_dir: Path) -> list[Path]:
     """Layout, spaghetti (+ varsa önerilen layout ve önce/sonra) PNG dosyaları."""
     out_dir.mkdir(parents=True, exist_ok=True)
     wanted = {"layout_current": "layout_current", "spaghetti_current": "spaghetti_current",
-              "layout_proposed": "layout_proposed", "before_after": "before_after"}
+              "layout_proposed": "layout_proposed", "before_after": "before_after",
+              "heatmap_util": "heatmap_util", "heatmap_queue": "heatmap_queue",
+              "heatmap_from_to": "heatmap_from_to", "heatmap_compare": "heatmap_compare"}
     paths: list[Path] = []
     for key, stem in wanted.items():
         if key in ctx["_figures"]:
