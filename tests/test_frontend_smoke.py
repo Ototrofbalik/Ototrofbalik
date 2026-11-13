@@ -70,3 +70,14 @@ def test_layout_designer_edit_and_validation(app):
     _btn(app, "mv_apply").click().run()
     assert not app.exception
     assert any("GEÇERSİZ" in e.value for e in app.error)
+
+
+def test_digital_twin_page_with_and_without_sim(app):
+    _btn(app, "top_demo").click().run()
+    app.sidebar.radio[0].set_value("Digital Twin").run()
+    assert not app.exception
+    assert app.info  # simülasyon yok -> yönlendirme
+    _btn(app, "top_sim").click().run()
+    app.sidebar.radio[0].set_value("Digital Twin").run()
+    # veri modülü yoksa dürüst hata, varsa sayfa çökmeden render edilir
+    assert not app.exception

@@ -27,7 +27,7 @@ from backend.schemas import (  # noqa: E402
 )
 
 REPORT_DIR = _ROOT / "data" / "generated_reports"
-PAGES = ["Dashboard", "Layout Designer", "Process Flow", "Spaghetti Analysis", "Simulation", "Optimization",
+PAGES = ["Dashboard", "Layout Designer", "Process Flow", "Spaghetti Analysis", "Simulation", "Digital Twin", "Optimization",
          "Scenario Comparison", "AI Engineer", "Reports", "Settings"]
 
 
